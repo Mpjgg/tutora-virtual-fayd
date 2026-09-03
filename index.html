@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cartografías del acompañamiento — María Paula Jaramillo Gómez</title>
+<meta name="description" content="Propuesta para Tutora Virtual — FAyD UNaM.">
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Work+Sans:wght@400;500;600&display=swap');
+
+  :root{
+    --paper: #E7EEF3;
+    --paper-light: #F4F8FA;
+    --ink: #16232E;
+    --ink-soft: #3B4F5E;
+    --route: #2B5C82;
+    --route-hover: #1F4560;
+    --contour: #5C7A83;
+    --water: #8CA5B3;
+    --line: #C9D8DF;
+  }
+
+  *{ box-sizing: border-box; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  body{
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Work Sans', sans-serif;
+    line-height: 1.6;
+  }
+
+  a{ color: var(--route); }
+  button{ font-family: inherit; }
+  a:focus-visible, button:focus-visible{
+    outline: 3px solid var(--route);
+    outline-offset: 3px;
+  }
+
+  .skip-link{
+    position: absolute; left: -999px; top: 0;
+    background: var(--ink); color: var(--paper-light);
+    padding: 10px 16px; z-index: 200; text-decoration: none;
+  }
+  .skip-link:focus{ left: 12px; top: 12px; }
+
+  h1, h2, h3{ font-family: 'Cormorant Garamond', serif; font-weight: 600; line-height: 1.15; margin: 0; }
+
+  /* ===== HEADER ===== */
+  header{
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 6vw 16px;
+    border-bottom: 2px solid var(--contour);
+  }
+  .eyebrow{
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.8rem;
+    color: var(--contour);
+    font-weight: 600;
+  }
+  h1{ font-size: clamp(2rem, 4.4vw, 3.1rem); font-weight: 400; margin-top: 8px; }
+  h1 em{ font-style: italic; font-weight: 600; color: var(--route); font-size: 1.08em; }
+  .lede{ color: var(--ink-soft); max-width: 60ch; margin-top: 12px; }
+
+  .progress-row{
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: var(--contour);
+  }
+  .progress-track{
+    flex: 1; max-width: 220px; height: 4px;
+    background: var(--line); border-radius: 2px; overflow: hidden;
+  }
+  .progress-fill{
+    height: 100%; width: 0%; background: var(--route);
+    transition: width 0.4s ease;
+  }
+
+  /* ===== MAP ===== */
+  main{ max-width: 1000px; margin: 0 auto; padding: 4vh 6vw 2vh; }
+
+  .map-frame{
+    position: relative;
+    background: var(--paper-light);
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  .map-svg{ width: 100%; height: auto; display: block; }
+
+  .route-seg{ fill: none; stroke: var(--route); stroke-linecap: round; opacity: 0.75; }
+  .route-seg-1{ stroke-width: 2.5; stroke-dasharray: 5 8; }
+  .route-seg-2{ stroke-width: 4.5; stroke-dasharray: 9 5; }
+  .route-seg-3{ stroke-width: 3; stroke-dasharray: 6 6; opacity: 0.6; }
+
+  .pin{ cursor: pointer; }
+  .pin:focus-visible .pin-circle{ outline: 3px solid var(--route); outline-offset: 3px; }
+  .pin-circle{
+    fill: var(--paper-light); stroke: var(--route); stroke-width: 3;
+    transition: fill 0.2s ease;
+  }
+  .pin[data-visited="true"] .pin-circle{ fill: var(--route); }
+  .pin-check{
+    stroke: var(--paper-light); stroke-width: 2; fill: none; opacity: 0;
+  }
+  .pin[data-visited="true"] .pin-check{ opacity: 1; }
+  .pin-label{ font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 16px; font-weight: 500; fill: var(--ink); }
+  .pin-coord{ font-family: 'Work Sans', sans-serif; font-size: 9px; fill: var(--water); letter-spacing: 0.06em; text-transform: uppercase; }
+  .pin-label-bg{ fill: var(--paper-light); opacity: 0.92; }
+
+  .map-hint{ text-align: center; font-size: 13px; color: var(--water); margin-top: 12px; }
+
+  /* ===== PANEL ===== */
+  .overlay{
+    position: fixed; inset: 0; background: rgba(34,32,26,0.4);
+    opacity: 0; pointer-events: none; transition: opacity 0.25s ease; z-index: 50;
+  }
+  .overlay.open{ opacity: 1; pointer-events: auto; }
+
+  .panel{
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 100%);
+    background: var(--paper); border-left: 3px solid var(--ink);
+    transform: translateX(100%); transition: transform 0.3s ease;
+    z-index: 51; overflow-y: auto; padding: 28px 30px 60px;
+  }
+  .panel.open{ transform: translateX(0); }
+
+  .panel-close{
+    background: none; border: 1px solid var(--line); border-radius: 50%;
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--ink); margin-bottom: 20px;
+  }
+  .panel-close:hover{ border-color: var(--route); color: var(--route); }
+
+  .panel .tag{
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic; font-weight: 500;
+    font-size: 1.05rem; letter-spacing: 0.01em; color: var(--contour);
+    text-transform: none; display: block; margin-bottom: 6px;
+  }
+  .panel h2{ font-size: 2rem; font-style: italic; font-weight: 500; margin-bottom: 18px; }
+  .panel p{ color: var(--ink-soft); font-size: 0.98rem; margin-bottom: 16px; }
+
+  .panel ul{ margin: 0 0 20px; padding-left: 20px; color: var(--ink-soft); }
+  .panel li{ margin-bottom: 10px; }
+  .panel li strong{ color: var(--ink); }
+
+  /* mini escena interactiva — capacidades */
+  .scenario{
+    background: var(--paper-light);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 18px 18px 6px;
+    margin: 16px 0 20px;
+  }
+  .scenario-prompt{ font-size: 0.95rem; color: var(--ink); margin-bottom: 14px; }
+  .scenario-options{ display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+  .scenario-btn{
+    text-align: left;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    color: var(--ink);
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .scenario-btn:hover{ border-color: var(--route); }
+  .scenario-btn[aria-expanded="true"]{
+    background: var(--paper-light);
+    border-color: var(--route);
+    font-weight: 600;
+  }
+  .scenario-response{
+    display: none;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    background: var(--paper);
+    border-left: 3px solid var(--route);
+    padding: 10px 14px;
+    margin: 4px 0 14px;
+  }
+  .scenario-response.show{ display: block; }
+
+  /* ===== AVATAR 3D + ÍCONOS ORBITANDO — parada "quién soy" ===== */
+  .orbit-wrap{
+    position: relative;
+    max-width: 320px;
+    margin: 4px auto 6px;
+  }
+  model-viewer{
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--paper-light);
+  }
+
+  .orbit-ring{
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    animation: orbit-spin 22s linear infinite;
+  }
+  @keyframes orbit-spin{ from{ transform: rotate(0deg); } to{ transform: rotate(360deg); } }
+
+  .orbit-slot{
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+  }
+  .orbit-a{ transform: rotate(0deg) translate(140px) rotate(0deg); }
+  .orbit-b{ transform: rotate(120deg) translate(140px) rotate(-120deg); }
+  .orbit-c{ transform: rotate(240deg) translate(140px) rotate(-240deg); }
+
+  .orbit-icon{
+    pointer-events: auto;
+    width: 42px; height: 42px;
+    margin: -21px;
+    border-radius: 50%;
+    background: var(--paper-light);
+    border: 2px solid var(--route);
+    color: var(--route);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    animation: orbit-counter 22s linear infinite;
+  }
+  .orbit-icon svg{ width: 20px; height: 20px; }
+  .orbit-icon[aria-expanded="true"]{ background: var(--route); color: var(--paper-light); }
+  @keyframes orbit-counter{ from{ transform: rotate(0deg); } to{ transform: rotate(-360deg); } }
+
+  .avatar-hint{ text-align: center; font-size: 12.5px; color: var(--water); margin-bottom: 18px; }
+
+  .media-panels{ display: flex; flex-direction: column; gap: 10px; }
+  .media-panel{
+    display: none;
+    background: var(--paper-light);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px;
+  }
+  .media-panel.show{ display: block; }
+  .media-panel h3{ font-size: 1rem; margin-bottom: 10px; }
+
+  .embed-frame{
+    background: var(--paper);
+    border: 1px dashed var(--contour);
+    border-radius: 4px;
+    min-height: 140px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 14px;
+    text-align: center;
+  }
+  .embed-placeholder-text{ color: var(--water); font-size: 13px; line-height: 1.7; }
+  .embed-placeholder-text code{
+    display: block; margin-top: 6px; font-size: 11px; color: var(--ink-soft);
+    background: var(--paper-light); padding: 5px 8px; border-radius: 3px; word-break: break-all;
+  }
+  .embed-frame iframe, .embed-frame video, .embed-frame audio, .embed-frame img{
+    width: 100%; border: none; border-radius: 3px;
+  }
+  .embed-frame-audio{
+    min-height: 0;
+    border-style: solid;
+    padding: 16px;
+  }
+
+  .toolbox{ display: flex; flex-direction: column; gap: 14px; }
+  .toolbox-title{
+    display: block; font-size: 12px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--contour); margin-bottom: 6px;
+  }
+  .toolbox-chips{ display: flex; flex-wrap: wrap; gap: 6px; }
+  .tool-chip{
+    display: inline-block;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+
+  .puzzle-intro{ font-size: 0.9rem; color: var(--ink-soft); margin-bottom: 14px; }
+  .puzzle{
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .puzzle-label{
+    font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 500;
+    font-size: 1rem; color: var(--route); display: block; margin-bottom: 6px;
+  }
+  .puzzle-q{ font-size: 0.9rem; color: var(--ink); margin-bottom: 10px; }
+
+  .seq-options{ display: flex; flex-direction: column; gap: 6px; }
+  .seq-btn, .choice-btn{
+    text-align: left;
+    background: var(--paper-light);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .seq-btn:hover:not(:disabled), .choice-btn:hover:not(:disabled){ border-color: var(--route); }
+  .seq-btn.picked{ background: var(--route); color: var(--paper-light); border-color: var(--route); }
+  .seq-btn:disabled, .choice-btn:disabled{ cursor: default; opacity: 0.85; }
+
+  .choice-options{ display: flex; flex-direction: column; gap: 6px; }
+  .choice-btn.correct-pick{ background: var(--route); color: var(--paper-light); border-color: var(--route); }
+  .choice-btn.wrong-pick{ background: transparent; border-color: var(--water); color: var(--water); text-decoration: line-through; }
+  .choice-btn.reveal-correct{ border-color: var(--route); font-weight: 600; }
+
+  .puzzle-feedback{ font-size: 0.82rem; color: var(--contour); margin-top: 8px; min-height: 1.2em; }
+  .puzzle-status{ text-align: center; font-size: 0.85rem; color: var(--water); margin-top: 4px; }
+
+  .avatar-hint{
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--water);
+    margin-bottom: 18px;
+  }
+
+  .hotspot-responses{ display: flex; flex-direction: column; gap: 8px; }
+  .hotspot-response{
+    display: none;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    background: var(--paper-light);
+    border-left: 3px solid var(--contour);
+    padding: 10px 14px;
+    border-radius: 0 4px 4px 0;
+  }
+  .hotspot-response.show{ display: block; }
+  .hotspot-response strong{ color: var(--ink); }
+
+  /* ===== CLOSING ===== */
+  .closing{
+    max-width: 1000px; margin: 6vh auto 0; padding: 0 6vw;
+  }
+  .closing-box{
+    border-top: 1px solid var(--line);
+    padding: 5vh 0 8vh;
+    text-align: center;
+  }
+  .closing h2{ font-size: 1.5rem; margin-bottom: 12px; }
+  .closing p{ color: var(--ink-soft); max-width: 46ch; margin: 0 auto 22px; }
+  .closing-links{ display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; font-size: 14px; }
+  .closing-links a{ text-decoration: none; border-bottom: 1px solid var(--route); padding-bottom: 2px; }
+
+  footer{ text-align: center; padding: 20px 6vw 40px; font-size: 12px; color: var(--water); }
+
+  @media (max-width: 640px){
+    .panel{ padding: 22px 20px 48px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#mapa">Saltar al mapa</a>
+
+<header>
+  <span class="eyebrow">María Paula Jaramillo Gómez · Postulación Tutora Virtual, FAyD UNaM</span>
+  <h1>Cartografías del <em>acompañamiento</em></h1>
+  <p class="lede">Un recorrido en cuatro paradas para mostrar cómo pienso el acompañamiento a distancia.</p>
+  <div class="progress-row">
+    <span id="progress-text">0 de 4 recorridas</span>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+</header>
+
+<main>
+  <div class="map-frame" id="mapa">
+    <svg class="map-svg" viewBox="0 0 800 320" role="img" aria-label="Mapa con cuatro paradas: quién soy, capacidades aplicadas, experiencia profesional y estudios">
+      <path class="route-seg route-seg-1" d="M 90 260 C 150 200, 210 160, 280 140" />
+      <path class="route-seg route-seg-2" d="M 280 140 C 350 120, 430 260, 480 240" />
+      <path class="route-seg route-seg-3" d="M 480 240 C 550 210, 620 60, 690 120" />
+
+      <g class="pin" tabindex="0" role="button" aria-label="Abrir: Quién soy" data-panel="1" data-visited="false">
+        <circle class="pin-circle" cx="90" cy="260" r="11"></circle>
+        <path class="pin-check" d="M85 260 l4 4 l7 -8"></path>
+        <rect class="pin-label-bg" x="104" y="243" width="110" height="35" rx="3"></rect>
+        <text class="pin-label" x="108" y="256">Quién soy</text>
+        <text class="pin-coord" x="108" y="272">la presentación</text>
+      </g>
+
+      <g class="pin" tabindex="0" role="button" aria-label="Abrir: Capacidades aplicadas al rol" data-panel="2" data-visited="false">
+        <circle class="pin-circle" cx="280" cy="140" r="11"></circle>
+        <path class="pin-check" d="M275 140 l4 4 l7 -8"></path>
+        <rect class="pin-label-bg" x="294" y="123" width="192" height="35" rx="3"></rect>
+        <text class="pin-label" x="298" y="136">Capacidades aplicadas</text>
+        <text class="pin-coord" x="298" y="152">al rol tutorial</text>
+      </g>
+
+      <g class="pin" tabindex="0" role="button" aria-label="Abrir: Experiencia profesional" data-panel="3" data-visited="false">
+        <circle class="pin-circle" cx="480" cy="240" r="11"></circle>
+        <path class="pin-check" d="M475 240 l4 4 l7 -8"></path>
+        <rect class="pin-label-bg" x="494" y="223" width="208" height="35" rx="3"></rect>
+        <text class="pin-label" x="498" y="236">Experiencia profesional</text>
+        <text class="pin-coord" x="498" y="252">la evidencia</text>
+      </g>
+
+      <g class="pin" tabindex="0" role="button" aria-label="Abrir: Estudios" data-panel="4" data-visited="false">
+        <circle class="pin-circle" cx="690" cy="120" r="11"></circle>
+        <path class="pin-check" d="M685 120 l4 4 l7 -8"></path>
+        <rect class="pin-label-bg" x="654" y="84" width="88" height="20" rx="3"></rect>
+        <rect class="pin-label-bg" x="656" y="140" width="75" height="16" rx="3"></rect>
+        <text class="pin-label" x="660" y="100">Estudios</text>
+        <text class="pin-coord" x="660" y="148">el respaldo</text>
+      </g>
+    </svg>
+  </div>
+  <p class="map-hint">Tocá cada punto para abrir esa parada.</p>
+</main>
+
+<section class="closing">
+  <div class="closing-box">
+    <h2>Sigamos la conversación</h2>
+    <p>Currículum vitae completo y documentación disponibles a continuación.</p>
+    <div class="closing-links">
+      <a href="#">Descargar CV</a>
+      <a href="mailto:mariapaulajaramillogomez@gmail.com">Escribir un correo</a>
+      <a href="https://www.linkedin.com/in/mariapaulajgg" target="_blank" rel="noopener">LinkedIn</a>
+      <a href="https://www.mariapaulajg.com" target="_blank" rel="noopener">Página web</a>
+    </div>
+  </div>
+</section>
+
+<footer>María Paula Jaramillo Gómez — Postulación Tutora Virtual, FAyD UNaM, 2026</footer>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- PARADA 1 — QUIÉN SOY -->
+<aside class="panel" id="panel-1" role="dialog" aria-modal="true" aria-labelledby="panel-1-title">
+  <button class="panel-close" data-close aria-label="Cerrar">✕</button>
+  <span class="tag">Parada 1 de 4</span>
+  <h2 id="panel-1-title">Quién soy</h2>
+  <p>Tres piezas para conocerme, girando alrededor del modelo. Tocá cada ícono para abrir el podcast, la infografía o el video.</p>
+
+  <div class="orbit-wrap">
+    <model-viewer
+      src="model.glb"
+      alt="Modelo 3D de María Paula"
+      camera-controls
+      auto-rotate
+      shadow-intensity="0.3"
+      style="width:100%; height:420px;">
+    </model-viewer>
+
+    <div class="orbit-ring" aria-hidden="false">
+      <div class="orbit-slot orbit-a">
+        <button type="button" class="orbit-icon" data-media="podcast" aria-expanded="false" aria-label="Abrir podcast">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+        </button>
+      </div>
+      <div class="orbit-slot orbit-b">
+        <button type="button" class="orbit-icon" data-media="herramientas" aria-expanded="false" aria-label="Abrir caja de herramientas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="9" rx="1.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><line x1="3" y1="14" x2="21" y2="14"/></svg>
+        </button>
+      </div>
+      <div class="orbit-slot orbit-c">
+        <button type="button" class="orbit-icon" data-media="juego" aria-expanded="false" aria-label="Abrir acertijos lógicos">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.5 3a2.5 2.5 0 0 1 5 0v1h3a1 1 0 0 1 1 1v3h1a2.5 2.5 0 0 1 0 5h-1v3a1 1 0 0 1-1 1h-3v1a2.5 2.5 0 0 1-5 0v-1h-3a1 1 0 0 1-1-1v-3h-1a2.5 2.5 0 0 1 0-5h1V5a1 1 0 0 1 1-1h3z"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  <p class="avatar-hint">Arrastrá el modelo para girarlo. Los íconos que orbitan abren cada pieza.</p>
+
+  <div class="media-panels">
+    <div class="media-panel" id="media-podcast">
+      <h3>El factor humano en el aula digital</h3>
+      <div class="embed-frame embed-frame-audio">
+        <audio controls preload="none" style="width:100%;">
+          <source src="El_factor_humano_en_el_aula_digital.m4a" type="audio/mp4">
+          Tu navegador no soporta la reproducción de audio.
+        </audio>
+      </div>
+    </div>
+    <div class="media-panel" id="media-herramientas">
+      <h3>Caja de herramientas</h3>
+      <div class="toolbox">
+        <div class="toolbox-group">
+          <span class="toolbox-title">Diseño y producción</span>
+          <div class="toolbox-chips">
+            <span class="tool-chip">Canva</span>
+            <span class="tool-chip">Genially</span>
+            <span class="tool-chip">CapCut</span>
+            <span class="tool-chip">Adobe Podcast Enhance</span>
+            <span class="tool-chip">Suite Adobe</span>
+            <span class="tool-chip">Miro</span>
+          </div>
+        </div>
+        <div class="toolbox-group">
+          <span class="toolbox-title">Gestión del aprendizaje</span>
+          <div class="toolbox-chips">
+            <span class="tool-chip">Moodle</span>
+            <span class="tool-chip">Classroom</span>
+            <span class="tool-chip">Kahoot</span>
+            <span class="tool-chip">Padlet</span>
+            <span class="tool-chip">Google Workspace</span>
+          </div>
+        </div>
+        <div class="toolbox-group">
+          <span class="toolbox-title">Código y hardware</span>
+          <div class="toolbox-chips">
+            <span class="tool-chip">Processing</span>
+            <span class="tool-chip">p5.js</span>
+            <span class="tool-chip">TouchDesigner</span>
+            <span class="tool-chip">Arduino</span>
+            <span class="tool-chip">Python</span>
+          </div>
+        </div>
+        <div class="toolbox-group">
+          <span class="toolbox-title">Inteligencia artificial</span>
+          <div class="toolbox-chips">
+            <span class="tool-chip">Claude</span>
+            <span class="tool-chip">Gemini</span>
+            <span class="tool-chip">ChatGPT</span>
+            <span class="tool-chip">Perplexity</span>
+            <span class="tool-chip">Humata</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="media-panel" id="media-juego">
+      <h3>Lógica del acompañamiento</h3>
+      <p class="puzzle-intro">Tres acertijos cortos: secuencia, condición e iteración. La misma lógica que aplico en cualquier intervención tutorial.</p>
+
+      <div class="puzzle">
+        <span class="puzzle-label">Acertijo 1 · Secuencia</span>
+        <p class="puzzle-q">Tocá los cuatro pasos en el orden correcto de una intervención:</p>
+        <div class="seq-options" id="seq-options">
+          <button type="button" class="seq-btn" data-step="C">Reviso si la causa es técnica, de tiempo o de motivación</button>
+          <button type="button" class="seq-btn" data-step="A">Noto que dejó de participar</button>
+          <button type="button" class="seq-btn" data-step="D">Ajusto el acompañamiento según la causa</button>
+          <button type="button" class="seq-btn" data-step="B">Pregunto qué está pasando</button>
+        </div>
+        <div class="puzzle-feedback" id="seq-feedback"></div>
+      </div>
+
+      <div class="puzzle">
+        <span class="puzzle-label">Acertijo 2 · Condición</span>
+        <p class="puzzle-q">Si el estudiante no responde en 48 horas, ¿qué hago?</p>
+        <div class="choice-options" data-puzzle="cond1">
+          <button type="button" class="choice-btn" data-correct="false">Espero una semana más sin avisar a nadie</button>
+          <button type="button" class="choice-btn" data-correct="true">Envío un segundo mensaje por otro canal</button>
+          <button type="button" class="choice-btn" data-correct="false">Lo doy de baja del curso directamente</button>
+        </div>
+        <div class="puzzle-feedback" data-feedback="cond1"></div>
+      </div>
+
+      <div class="puzzle">
+        <span class="puzzle-label">Acertijo 3 · Iteración</span>
+        <p class="puzzle-q">Mensaje directo → sin respuesta → ¿qué sigue antes de derivar a conducción?</p>
+        <div class="choice-options" data-puzzle="iter1">
+          <button type="button" class="choice-btn" data-correct="false">Repetir el mismo mensaje otra vez</button>
+          <button type="button" class="choice-btn" data-correct="true">Intentar contacto por otro canal</button>
+          <button type="button" class="choice-btn" data-correct="false">Esperar sin ninguna acción</button>
+        </div>
+        <div class="puzzle-feedback" data-feedback="iter1"></div>
+      </div>
+
+      <p class="puzzle-status" id="puzzle-status">0 de 3 resueltos</p>
+    </div>
+  </div>
+</aside>
+
+<!-- PARADA 2 — CAPACIDADES -->
+<aside class="panel" id="panel-2" role="dialog" aria-modal="true" aria-labelledby="panel-2-title">
+  <button class="panel-close" data-close aria-label="Cerrar">✕</button>
+  <span class="tag">Parada 2 de 4</span>
+  <h2 id="panel-2-title">Capacidades aplicadas al rol tutorial</h2>
+  <p>La convocatoria describe la función tutorial en verbos concretos: sostener la participación, orientar el uso del aula virtual, mantener el vínculo con los equipos docentes, hacer seguimiento sistemático, identificar tempranamente dificultades, favorecer la autonomía. Cada uno tiene un correlato directo en lo que ya ejerzo:</p>
+  <ul>
+    <li><strong>Orientar entornos virtuales:</strong> manejo cotidiano de Moodle como Profesora Titular en UCES, en materias híbridas que combinaban instancias asincrónicas y presenciales. Ahí acompañaba a los estudiantes en el uso del aula.</li>
+    <li><strong>Identificar dificultades tempranas:</strong> mi trabajo de alfabetización digital parte de detectar brechas concretas de manejo antes de que se conviertan en obstáculo.</li>
+    <li><strong>Vínculo con múltiples actores:</strong> como Facilitadora Pedagógica Digital en GCBA, articulo hoy con más de 100 docentes en dos escuelas, además de estudiantes, conducción y pares.</li>
+    <li><strong>Favorecer la autonomía:</strong> mi eje de ciudadanía digital y pensamiento computacional apunta a que la persona pueda sostenerse sola en el entorno digital.</li>
+    <li><strong>Actualización constante:</strong> mi trabajo diario incorpora tecnologías emergentes como la IA. Eso exige sostener una curva de aprendizaje activa, la misma que le voy a pedir a quien acompañe.</li>
+  </ul>
+
+  <div class="scenario">
+    <p class="scenario-prompt">Cuatro maneras en que se traduce el acompañamiento: dos situaciones a resolver, dos proyectos a diseñar. Elegí una:</p>
+    <div class="scenario-options">
+      <button class="scenario-btn" data-target="resp-a" aria-expanded="false">Un/a estudiante deja de participar en el aula</button>
+      <div class="scenario-response" id="resp-a">Contacto directo y breve, sin reproche: pregunto primero qué está pasando. Reviso si el corte es técnico, de organización del tiempo o de motivación, y recién ahí ajusto el acompañamiento. El seguimiento sistemático permite notar la ausencia antes de que se vuelva abandono.</div>
+
+      <button class="scenario-btn" data-target="resp-b" aria-expanded="false">Falla técnica que bloquea una entrega</button>
+      <div class="scenario-response" id="resp-b">Separo el problema técnico del académico. Primero resuelvo o derivo la falla (plazo, canal alternativo, soporte), después reviso el contenido. La entrega tardía por un obstáculo tecnológico nunca se convierte en una nota baja ni en pérdida de confianza en el propio proceso.</div>
+
+      <button class="scenario-btn" data-target="resp-c" aria-expanded="false">Proyecto "Mi primer robot" — iniciación en programación</button>
+      <div class="scenario-response" id="resp-c">Parto de un objeto físico manipulable para que la lógica computacional tenga un correlato concreto: armar, probar, fallar, ajustar. Sostengo el error como parte esperada del proceso. Cada intento fallido enseña secuencia, condición o iteración antes de que se nombre como concepto. Es la misma lógica de andamiaje que aplicaría en un entorno a distancia: bajar la abstracción a algo tangible antes de pedir que se sostenga sola.</div>
+
+      <button class="scenario-btn" data-target="resp-d" aria-expanded="false">Videojuego "Explorando la ET20" — uso crítico de IA</button>
+      <div class="scenario-response" id="resp-d">Trabajamos la IA como herramienta de cocreación: los estudiantes curaban, ajustaban y descartaban lo que proponía, con criterio propio en cada paso. El acompañamiento ahí fue sostener esa pregunta: ¿esto sirve, o solo está disponible? Se vuelve todavía más necesaria cuando el vínculo es a distancia, porque hay menos oportunidad de corregir el rumbo en el momento.</div>
+    </div>
+  </div>
+</aside>
+
+<!-- PARADA 3 — EXPERIENCIA -->
+<aside class="panel" id="panel-3" role="dialog" aria-modal="true" aria-labelledby="panel-3-title">
+  <button class="panel-close" data-close aria-label="Cerrar">✕</button>
+  <span class="tag">Parada 3 de 4</span>
+  <h2 id="panel-3-title">Experiencia profesional</h2>
+  <p>Tres antecedentes que sostienen lo anterior con contexto y escala:</p>
+  <ul>
+    <li><strong>Facilitadora Pedagógica Digital, GCBA</strong> (2023–presente): acompaño hoy a más de 100 docentes en dos escuelas y propicio la inserción transversal de tecnología en distintas asignaturas. El trabajo incluye también a estudiantes, conducción y pares, e integra herramientas emergentes como la IA junto con la actualización constante que exige ese terreno.</li>
+    <li><strong>Coordinadora Académica de Proyectos, C-Transmedia</strong> (2021–2022): formadora de formadores. Formé y acompañé a 40 docentes en herramientas digitales y metodologías (ABP, Design Thinking, aula invertida) para que replicaran esa formación en sistema de cascada con sus propios pares, fortaleciendo esas capacidades para sostener el efecto multiplicador. Impacto total: más de 1400 docentes del departamento de Caldas, Colombia.</li>
+    <li><strong>Profesora Titular, UCES</strong> (2022–2025): orientación de asignaturas de diseño multimedia en modalidad híbrida, con instancias asincrónicas en Moodle y presenciales.</li>
+  </ul>
+</aside>
+
+<!-- PARADA 4 — ESTUDIOS -->
+<aside class="panel" id="panel-4" role="dialog" aria-modal="true" aria-labelledby="panel-4-title">
+  <button class="panel-close" data-close aria-label="Cerrar">✕</button>
+  <span class="tag">Parada 4 de 4</span>
+  <h2 id="panel-4-title">Estudios</h2>
+  <p>Licenciada en Diseño Visual por la Universidad de Caldas, con tres maestrías que respaldan de forma directa el requisito de formación docente complementaria de la convocatoria:</p>
+  <ul>
+    <li><strong>Maestría en Tecnología y Estética de las Artes Electrónicas</strong> — Universidad Nacional de Tres de Febrero (UNTREF)</li>
+    <li><strong>Ciencias Humanas y Sociales, mención Educación</strong> — Université Paris-Est Créteil (UPEC)</li>
+    <li><strong>Magister en Ciencias Sociales, mención Educación y Trabajo</strong> — Universidad de Caldas</li>
+    <li><strong>Diplomatura Universitaria en Habilidades y Estrategias para la Innovación mediadas con Tecnologías Digitales</strong> — UniCABA</li>
+  </ul>
+</aside>
+
+<script>
+  const pins = document.querySelectorAll('.pin');
+  const overlay = document.getElementById('overlay');
+  const progressText = document.getElementById('progress-text');
+  const progressFill = document.getElementById('progress-fill');
+  let visited = 0;
+  let lastFocused = null;
+
+  function openPanel(n, trigger){
+    lastFocused = trigger;
+    const panel = document.getElementById('panel-' + n);
+    panel.classList.add('open');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    panel.querySelector('.panel-close').focus();
+
+    if(trigger.getAttribute('data-visited') === 'false'){
+      trigger.setAttribute('data-visited', 'true');
+      visited++;
+      progressText.textContent = visited + ' de 4 recorridas';
+      progressFill.style.width = (visited/4*100) + '%';
+    }
+  }
+
+  function closeAll(){
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('open'));
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+    if(lastFocused) lastFocused.focus();
+  }
+
+  pins.forEach(pin => {
+    const n = pin.getAttribute('data-panel');
+    pin.addEventListener('click', () => openPanel(n, pin));
+    pin.addEventListener('keydown', e => {
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openPanel(n, pin); }
+    });
+  });
+
+  document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeAll));
+  overlay.addEventListener('click', closeAll);
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') closeAll(); });
+
+  // mini-escena interactiva dentro de "capacidades"
+  document.querySelectorAll('.scenario-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.getAttribute('data-target'));
+      const isOpen = target.classList.contains('show');
+      target.classList.toggle('show', !isOpen);
+      btn.setAttribute('aria-expanded', String(!isOpen));
+    });
+  });
+
+  // íconos orbitando el modelo en "quién soy"
+  document.querySelectorAll('.orbit-icon').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById('media-' + btn.getAttribute('data-media'));
+      const isOpen = target.classList.contains('show');
+      document.querySelectorAll('.media-panel').forEach(p => p.classList.remove('show'));
+      document.querySelectorAll('.orbit-icon').forEach(b => b.setAttribute('aria-expanded', 'false'));
+      if(!isOpen){
+        target.classList.add('show');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+
+  // acertijos lógicos en "quién soy"
+  let puzzlesSolved = { seq: false, cond1: false, iter1: false };
+
+  function updatePuzzleStatus(){
+    const count = Object.values(puzzlesSolved).filter(Boolean).length;
+    const statusEl = document.getElementById('puzzle-status');
+    if(statusEl) statusEl.textContent = count + ' de 3 resueltos';
+  }
+
+  // acertijo 1 — secuencia
+  (function(){
+    const correctOrder = ['A','B','C','D'];
+    let picked = [];
+    const buttons = document.querySelectorAll('.seq-btn');
+    const feedback = document.getElementById('seq-feedback');
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        if(btn.disabled) return;
+        btn.disabled = true;
+        btn.classList.add('picked');
+        picked.push(btn.getAttribute('data-step'));
+
+        if(picked.length === correctOrder.length){
+          const isCorrect = picked.every((step, i) => step === correctOrder[i]);
+          if(isCorrect){
+            feedback.textContent = 'Secuencia correcta.';
+            puzzlesSolved.seq = true;
+            updatePuzzleStatus();
+          } else {
+            feedback.textContent = 'Ese no es el orden. Probá de nuevo.';
+            setTimeout(() => {
+              picked = [];
+              feedback.textContent = '';
+              buttons.forEach(b => { b.disabled = false; b.classList.remove('picked'); });
+            }, 1100);
+          }
+        }
+      });
+    });
+  })();
+
+  // acertijos 2 y 3 — condición e iteración
+  document.querySelectorAll('.choice-options').forEach(group => {
+    const key = group.getAttribute('data-puzzle');
+    const feedback = document.querySelector('[data-feedback="' + key + '"]');
+    const buttons = group.querySelectorAll('.choice-btn');
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        buttons.forEach(b => b.disabled = true);
+        const isCorrect = btn.getAttribute('data-correct') === 'true';
+
+        if(isCorrect){
+          btn.classList.add('correct-pick');
+          feedback.textContent = 'Correcto.';
+          puzzlesSolved[key] = true;
+          updatePuzzleStatus();
+        } else {
+          btn.classList.add('wrong-pick');
+          buttons.forEach(b => {
+            if(b.getAttribute('data-correct') === 'true') b.classList.add('reveal-correct');
+          });
+          feedback.textContent = 'No era esa. La correcta queda marcada.';
+        }
+      });
+    });
+  });
+</script>
+
+</body>
+</html>
