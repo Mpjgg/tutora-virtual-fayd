@@ -1,0 +1,1014 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cartografías del acompañamiento — María Paula Jaramillo Gómez</title>
+<meta name="description" content="Propuesta para Tutora Virtual — FAyD UNaM.">
+<script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Work+Sans:wght@400;500;600&display=swap');
+
+  :root{
+    --paper: #E7EEF3;
+    --paper-light: #F4F8FA;
+    --ink: #16232E;
+    --ink-soft: #3B4F5E;
+    --route: #2B5C82;
+    --route-hover: #1F4560;
+    --contour: #465C65;
+    --water: #4C6472;
+    --line: #C9D8DF;
+  }
+
+  *{ box-sizing: border-box; }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+  }
+
+  body{
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: 'Work Sans', sans-serif;
+    line-height: 1.6;
+  }
+
+  a{ color: var(--route); }
+  button{ font-family: inherit; }
+  a:focus-visible, button:focus-visible{
+    outline: 3px solid var(--route);
+    outline-offset: 3px;
+  }
+
+  .skip-link{
+    position: absolute; left: -999px; top: 0;
+    background: var(--ink); color: var(--paper-light);
+    padding: 10px 16px; z-index: 200; text-decoration: none;
+  }
+  .skip-link:focus{ left: 12px; top: 12px; }
+
+  h1, h2, h3{ font-family: 'Cormorant Garamond', serif; font-weight: 600; line-height: 1.15; margin: 0; }
+
+  /* ===== HEADER ===== */
+  header{
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 40px 6vw 16px;
+    border-bottom: 2px solid var(--contour);
+  }
+  .eyebrow{
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-size: 0.8rem;
+    color: var(--contour);
+    font-weight: 600;
+  }
+  h1{ font-size: clamp(2rem, 4.4vw, 3.1rem); font-weight: 400; margin-top: 8px; }
+  h1 em{ font-style: italic; font-weight: 600; color: var(--route); font-size: 1.08em; }
+  .lede{ color: var(--ink-soft); max-width: 60ch; margin-top: 12px; }
+
+  .progress-row{
+    margin-top: 20px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.85rem;
+    color: var(--contour);
+  }
+  .progress-track{
+    flex: 1; max-width: 220px; height: 4px;
+    background: var(--line); border-radius: 2px; overflow: hidden;
+  }
+  .progress-fill{
+    height: 100%; width: 0%; background: var(--route);
+    transition: width 0.4s ease;
+  }
+
+  /* ===== MAP ===== */
+  main{ max-width: 1000px; margin: 0 auto; padding: 4vh 6vw 2vh; }
+
+  .map-frame{
+    position: relative;
+    background: var(--paper-light);
+    border: 2px solid var(--ink);
+    border-radius: 8px;
+    padding: 10px;
+  }
+
+  .map-svg{ width: 100%; height: auto; display: block; }
+
+  .route-seg{ fill: none; stroke: var(--route); stroke-linecap: round; opacity: 0.75; }
+  .route-seg-1{ stroke-width: 2.5; stroke-dasharray: 5 8; }
+  .route-seg-2{ stroke-width: 4.5; stroke-dasharray: 9 5; }
+  .route-seg-3{ stroke-width: 3; stroke-dasharray: 6 6; opacity: 0.6; }
+  .route-seg-4{ stroke-width: 4; stroke-dasharray: 8 6; opacity: 0.7; }
+
+  .pin{ cursor: pointer; }
+  .pin:focus-visible .pin-circle{ outline: 3px solid var(--route); outline-offset: 3px; }
+  .pin-circle{
+    fill: var(--paper-light); stroke: var(--route); stroke-width: 3;
+    transition: fill 0.2s ease;
+  }
+  .pin[data-visited="true"] .pin-circle{ fill: var(--route); }
+  .pin-check{
+    stroke: var(--paper-light); stroke-width: 2; fill: none; opacity: 0;
+  }
+  .pin[data-visited="true"] .pin-check{ opacity: 1; }
+  .pin-label{ font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 16px; font-weight: 500; fill: var(--ink); }
+  .pin-coord{ font-family: 'Work Sans', sans-serif; font-size: 9px; fill: var(--water); letter-spacing: 0.06em; text-transform: uppercase; }
+  .pin-label-bg{ fill: var(--paper-light); opacity: 0.92; }
+
+  .map-hint{ text-align: center; font-size: 13px; color: var(--water); margin-top: 12px; }
+
+  /* ===== PANEL ===== */
+  .overlay{
+    position: fixed; inset: 0; background: rgba(34,32,26,0.4);
+    opacity: 0; pointer-events: none; transition: opacity 0.25s ease; z-index: 50;
+  }
+  .overlay.open{ opacity: 1; pointer-events: auto; }
+
+  .panel{
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(520px, 100%);
+    background: var(--paper); border-left: 3px solid var(--ink);
+    transform: translateX(100%); transition: transform 0.3s ease;
+    z-index: 51; overflow-y: auto; padding: 28px 30px 60px;
+  }
+  .panel.open{ transform: translateX(0); }
+
+  .panel-close{
+    background: none; border: 1px solid var(--line); border-radius: 50%;
+    width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; color: var(--ink); margin-bottom: 20px;
+  }
+  .panel-close:hover{ border-color: var(--route); color: var(--route); }
+
+  .panel .tag{
+    font-family: 'Cormorant Garamond', serif;
+    font-style: italic; font-weight: 500;
+    font-size: 1.05rem; letter-spacing: 0.01em; color: var(--contour);
+    text-transform: none; display: block; margin-bottom: 6px;
+  }
+  .panel h2{ font-size: 2rem; font-style: italic; font-weight: 500; margin-bottom: 18px; }
+  .panel p{ color: var(--ink-soft); font-size: 0.98rem; margin-bottom: 16px; }
+
+  .panel ul{ margin: 0 0 20px; padding-left: 20px; color: var(--ink-soft); }
+  .panel li{ margin-bottom: 10px; }
+  .panel li strong{ color: var(--ink); }
+
+  /* mini escena interactiva — capacidades */
+  .scenario{
+    background: var(--paper-light);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 18px 18px 6px;
+    margin: 16px 0 20px;
+  }
+  .scenario-prompt{ font-size: 0.95rem; color: var(--ink); margin-bottom: 14px; }
+  .scenario-options{ display: flex; flex-direction: column; gap: 8px; margin-bottom: 4px; }
+  .scenario-btn{
+    text-align: left;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    color: var(--ink);
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+  }
+  .scenario-btn:hover{ border-color: var(--route); }
+  .scenario-btn[aria-expanded="true"]{
+    background: var(--paper-light);
+    border-color: var(--route);
+    font-weight: 600;
+  }
+  .scenario-response{
+    display: none;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    background: var(--paper);
+    border-left: 3px solid var(--route);
+    padding: 10px 14px;
+    margin: 4px 0 14px;
+  }
+  .scenario-response.show{ display: block; }
+
+  /* ===== AVATAR 3D + ÍCONOS ORBITANDO — parada "quién soy" ===== */
+  .orbit-wrap{
+    position: relative;
+    max-width: 320px;
+    margin: 4px auto 6px;
+  }
+  model-viewer{
+    display: block;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: var(--paper-light);
+  }
+
+  .orbit-ring{
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    animation: orbit-spin 22s linear infinite;
+  }
+  @keyframes orbit-spin{ from{ transform: rotate(0deg); } to{ transform: rotate(360deg); } }
+
+  .orbit-slot{
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 0; height: 0;
+  }
+  .orbit-a{ transform: rotate(0deg) translate(140px) rotate(0deg); }
+  .orbit-b{ transform: rotate(120deg) translate(140px) rotate(-120deg); }
+  .orbit-c{ transform: rotate(240deg) translate(140px) rotate(-240deg); }
+
+  .orbit-icon{
+    pointer-events: auto;
+    width: 42px; height: 42px;
+    margin: -21px;
+    border-radius: 50%;
+    background: var(--paper-light);
+    border: 2px solid var(--route);
+    color: var(--route);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    animation: orbit-counter 22s linear infinite;
+  }
+  .orbit-icon svg{ width: 20px; height: 20px; }
+  .orbit-icon[aria-expanded="true"]{ background: var(--route); color: var(--paper-light); }
+  @keyframes orbit-counter{ from{ transform: rotate(0deg); } to{ transform: rotate(-360deg); } }
+
+  .avatar-hint{ text-align: center; font-size: 12.5px; color: var(--water); margin-bottom: 18px; }
+
+  .media-panels{ display: flex; flex-direction: column; gap: 10px; }
+  .media-panel{
+    display: none;
+    background: var(--paper-light);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 16px;
+  }
+  .media-panel.show{ display: block; }
+  .media-panel h3{ font-size: 1rem; margin-bottom: 10px; }
+
+  .embed-frame{
+    background: var(--paper);
+    border: 1px dashed var(--contour);
+    border-radius: 4px;
+    min-height: 140px;
+    display: flex; align-items: center; justify-content: center;
+    padding: 14px;
+    text-align: center;
+  }
+  .embed-placeholder-text{ color: var(--water); font-size: 13px; line-height: 1.7; }
+  .embed-placeholder-text code{
+    display: block; margin-top: 6px; font-size: 11px; color: var(--ink-soft);
+    background: var(--paper-light); padding: 5px 8px; border-radius: 3px; word-break: break-all;
+  }
+  .embed-frame iframe, .embed-frame video, .embed-frame audio, .embed-frame img{
+    width: 100%; border: none; border-radius: 3px;
+  }
+  .embed-frame-audio{
+    min-height: 0;
+    border-style: solid;
+    padding: 16px;
+  }
+
+  .transcript-toggle{
+    margin-top: 10px;
+    background: none;
+    border: none;
+    color: var(--route);
+    font-size: 13px;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    cursor: pointer;
+    padding: 4px 0;
+  }
+  .transcript-toggle:hover{ color: var(--route-hover); }
+  .transcript-text{
+    display: none;
+    margin-top: 10px;
+    padding: 14px;
+    background: var(--paper);
+    border-left: 3px solid var(--contour);
+    border-radius: 0 4px 4px 0;
+    font-size: 0.88rem;
+    color: var(--ink-soft);
+    max-height: 280px;
+    overflow-y: auto;
+  }
+  .transcript-text.show{ display: block; }
+  .transcript-text p{ margin: 0 0 10px; }
+  .transcript-text p:last-child{ margin-bottom: 0; }
+  .transcript-text strong{ color: var(--route); }
+
+  .toolbox{ display: flex; flex-direction: column; gap: 14px; }
+  .toolbox-title{
+    display: block; font-size: 12px; letter-spacing: 0.06em;
+    text-transform: uppercase; color: var(--contour); margin-bottom: 6px;
+  }
+  .toolbox-chips{ display: flex; flex-wrap: wrap; gap: 6px; }
+  .tool-chip{
+    display: inline-block;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12.5px;
+    color: var(--ink-soft);
+  }
+
+  .puzzle-intro{ font-size: 0.9rem; color: var(--ink-soft); margin-bottom: 14px; }
+  .puzzle{
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .puzzle-label{
+    font-family: 'Cormorant Garamond', serif; font-style: italic; font-weight: 500;
+    font-size: 1rem; color: var(--route); display: block; margin-bottom: 6px;
+  }
+  .puzzle-q{ font-size: 0.9rem; color: var(--ink); margin-bottom: 10px; }
+
+  .seq-options{ display: flex; flex-direction: column; gap: 6px; }
+  .seq-btn, .choice-btn{
+    text-align: left;
+    background: var(--paper-light);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    color: var(--ink);
+    cursor: pointer;
+  }
+  .seq-btn:hover:not(:disabled), .choice-btn:hover:not(:disabled){ border-color: var(--route); }
+  .seq-btn.picked{ background: var(--route); color: var(--paper-light); border-color: var(--route); }
+  .seq-btn:disabled, .choice-btn:disabled{ cursor: default; opacity: 0.85; }
+
+  .choice-options{ display: flex; flex-direction: column; gap: 6px; }
+  .choice-btn.correct-pick{ background: var(--route); color: var(--paper-light); border-color: var(--route); }
+  .choice-btn.wrong-pick{ background: transparent; border-color: var(--water); color: var(--water); text-decoration: line-through; }
+  .choice-btn.reveal-correct{ border-color: var(--route); font-weight: 600; }
+
+  .puzzle-feedback{ font-size: 0.82rem; color: var(--contour); margin-top: 8px; min-height: 1.2em; }
+  .puzzle-status{ text-align: center; font-size: 0.85rem; color: var(--water); margin-top: 4px; }
+
+  .arcade-wrap{
+    position: relative;
+    height: 260px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    margin-bottom: 10px;
+  }
+  .arcade-lanes{ position: absolute; inset: 0; }
+  .arcade-item{
+    position: absolute;
+    transform: translateX(-50%);
+    width: 30%;
+    text-align: center;
+    font-size: 10.5px;
+    line-height: 1.3;
+    padding: 5px 4px;
+    border-radius: 4px;
+    background: var(--paper-light);
+    border: 1.5px solid var(--route);
+    color: var(--ink);
+  }
+  .arcade-item.bad{ border-color: var(--water); color: var(--ink-soft); }
+  .arcade-player{
+    position: absolute;
+    bottom: 6px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 24px;
+    transition: left 0.15s ease;
+  }
+  .arcade-player.flash-good{ animation: arcade-good 0.4s ease; }
+  .arcade-player.flash-bad{ animation: arcade-bad 0.4s ease; }
+  @keyframes arcade-good{ 0%{ transform: translateX(-50%) scale(1.4); } 100%{ transform: translateX(-50%) scale(1); } }
+  @keyframes arcade-bad{ 0%{ transform: translateX(-50%) scale(0.7); } 100%{ transform: translateX(-50%) scale(1); } }
+
+  .arcade-controls{ display: flex; align-items: center; justify-content: center; gap: 18px; margin-bottom: 10px; }
+  .arcade-controls button{
+    width: 38px; height: 38px; border-radius: 50%;
+    border: 1px solid var(--line); background: var(--paper-light);
+    font-size: 15px; cursor: pointer; color: var(--ink);
+  }
+  .arcade-controls button:hover{ border-color: var(--route); }
+  .arcade-score{ font-size: 14px; color: var(--ink-soft); min-width: 90px; text-align: center; }
+
+  .arcade-start{
+    display: block; margin: 0 auto 10px;
+    background: var(--route); color: var(--paper-light);
+    border: none; border-radius: 20px;
+    padding: 8px 24px; font-size: 14px; cursor: pointer;
+  }
+  .arcade-start:hover{ background: var(--route-hover); }
+  .arcade-start:disabled{ opacity: 0.6; cursor: default; }
+  .arcade-result{ font-size: 0.85rem; color: var(--ink-soft); text-align: center; min-height: 1.2em; }
+
+  .avatar-hint{
+    text-align: center;
+    font-size: 12.5px;
+    color: var(--water);
+    margin-bottom: 18px;
+  }
+
+  .hotspot-responses{ display: flex; flex-direction: column; gap: 8px; }
+  .hotspot-response{
+    display: none;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    background: var(--paper-light);
+    border-left: 3px solid var(--contour);
+    padding: 10px 14px;
+    border-radius: 0 4px 4px 0;
+  }
+  .hotspot-response.show{ display: block; }
+  .hotspot-response strong{ color: var(--ink); }
+
+  /* ===== CLOSING ===== */
+  .closing{
+    max-width: 1000px; margin: 6vh auto 0; padding: 0 6vw;
+  }
+  .closing-box{
+    border-top: 1px solid var(--line);
+    padding: 5vh 0 8vh;
+    text-align: center;
+  }
+  .closing h2{ font-size: 1.5rem; margin-bottom: 12px; }
+  .closing p{ color: var(--ink-soft); max-width: 46ch; margin: 0 auto 22px; }
+  .closing-links{ display: flex; gap: 24px; justify-content: center; flex-wrap: wrap; font-size: 14px; }
+  .closing-links a{ text-decoration: none; border-bottom: 1px solid var(--route); padding-bottom: 2px; }
+
+  footer{ text-align: center; padding: 20px 6vw 40px; font-size: 12px; color: var(--water); }
+
+  .panel-scroll-cue{
+    position: sticky;
+    bottom: 4px;
+    display: flex;
+    justify-content: center;
+    margin-top: 12px;
+    color: var(--route);
+    opacity: 0.85;
+    transition: opacity 0.25s ease;
+    pointer-events: none;
+  }
+  .panel-scroll-cue.hidden{ opacity: 0; }
+  .panel-scroll-cue svg{ animation: scroll-bounce 1.6s ease-in-out infinite; }
+  @keyframes scroll-bounce{ 0%, 100%{ transform: translateY(0); } 50%{ transform: translateY(5px); } }
+
+  @media (max-width: 640px){
+    .panel{ padding: 22px 20px 48px; }
+  }
+</style>
+</head>
+<body>
+
+<a class="skip-link" href="#mapa">Saltar al mapa</a>
+
+<header>
+  <span class="eyebrow">María Paula Jaramillo Gómez · Postulación Tutora Virtual, FAyD UNaM</span>
+  <h1>Cartografías del <em>acompañamiento</em></h1>
+  <p class="lede">Un recorrido en cuatro paradas para mostrar cómo pienso el acompañamiento a distancia.</p>
+  <div class="progress-row">
+    <span id="progress-text">0 de 4 recorridas</span>
+    <div class="progress-track"><div class="progress-fill" id="progress-fill"></div></div>
+  </div>
+</header>
+
+<main>
+  <div class="map-frame" id="mapa">
+    <svg class="map-svg" viewBox="0 0 800 320" role="img" aria-label="Mapa con cuatro paradas: quién soy, enfoque tutorial, capacidades aplicadas y estudios">
+      <path class="route-seg route-seg-1" d="M 90 255 C 160 200, 200 150, 260 130" />
+      <path class="route-seg route-seg-2" d="M 260 130 C 320 150, 350 210, 420 230" />
+      <path class="route-seg route-seg-3" d="M 420 230 C 500 250, 610 170, 700 130" />
+
+      <g class="pin" tabindex="0" role="button" aria-label="Abrir: Quién soy" data-panel="1" data-visited="false">
+        <circle class="pin-circle" cx="90" cy="255" r="11"></circle>
+        <path class="pin-check" d="M85 255 l4 4 l7 -8"></path>
+        <rect class="pin-label-bg" x="104" y="239" width="110" height="34" rx="3"></rect>
+        <text class="pin-label" x="108" y="251">Quién soy</text>
+        <text class="pin-coord" x="108" y="267">la presentación</text>
+      </g>
+
+      <g class="pin" tabindex="0" role="button" aria-label="Abrir: Enfoque tutorial" data-panel="2" data-visited="false">
+        <circle class="pin-circle" cx="260" cy="130" r="11"></circle>
+        <path class="pin-check" d="M255 130 l4 4 l7 -8"></path>
+        <rect class="pin-label-bg" x="274" y="114" width="165" height="34" rx="3"></rect>
+        <text class="pin-label" x="278" y="126">Enfoque tutorial</text>
+        <text class="pin-coord" x="278" y="142">cómo pienso el rol</text>
+      </g>
+
+      <g class="pin" tabindex="0" role="button" aria-label="Abrir: Capacidades aplicadas al rol" data-panel="3" data-visited="false">
+        <circle class="pin-circle" cx="420" cy="230" r="11"></circle>
+        <path class="pin-check" d="M415 230 l4 4 l7 -8"></path>
+        <rect class="pin-label-bg" x="434" y="214" width="195" height="34" rx="3"></rect>
+        <text class="pin-label" x="438" y="226">Capacidades aplicadas</text>
+        <text class="pin-coord" x="438" y="242">al rol tutorial</text>
+      </g>
+
+      <g class="pin" tabindex="0" role="button" aria-label="Abrir: Estudios" data-panel="4" data-visited="false">
+        <circle class="pin-circle" cx="700" cy="130" r="11"></circle>
+        <path class="pin-check" d="M695 130 l4 4 l7 -8"></path>
+        <rect class="pin-label-bg" x="586" y="114" width="100" height="34" rx="3"></rect>
+        <text class="pin-label" x="590" y="126">Estudios</text>
+        <text class="pin-coord" x="590" y="142">el respaldo</text>
+      </g>
+    </svg>
+  </div>
+  <p class="map-hint">Tocá cada punto para abrir esa parada.</p>
+</main>
+
+<section class="closing">
+  <div class="closing-box">
+    <h2>Sigamos la conversación</h2>
+    <p>Currículum vitae completo y documentación disponibles a continuación.</p>
+    <div class="closing-links">
+      <a href="https://canva.link/cv-maria-paula-jaramillo-gomez" target="_blank" rel="noopener">Ver CV</a>
+      <a href="https://www.linkedin.com/in/mariapaulajgg" target="_blank" rel="noopener">LinkedIn</a>
+      <a href="https://www.mariapaulajg.com" target="_blank" rel="noopener">Página web</a>
+    </div>
+  </div>
+</section>
+
+<footer>María Paula Jaramillo Gómez — Postulación Tutora Virtual, FAyD UNaM, 2026</footer>
+
+<div class="overlay" id="overlay"></div>
+
+<!-- PARADA 1 — QUIÉN SOY -->
+<aside class="panel" id="panel-1" role="dialog" aria-modal="true" aria-labelledby="panel-1-title">
+  <button class="panel-close" data-close aria-label="Cerrar">✕</button>
+  <span class="tag">Parada 1 de 4</span>
+  <h2 id="panel-1-title">Quién soy</h2>
+  <p>Tres piezas para conocerme, girando alrededor del modelo. Tocá cada ícono para abrir el podcast, la caja de herramientas o el juego.</p>
+
+  <div class="orbit-wrap">
+    <model-viewer
+      src="model.glb"
+      alt="Modelo 3D de María Paula"
+      camera-controls
+      auto-rotate
+      autoplay
+      animation-name="Animation"
+      shadow-intensity="0.3"
+      style="width:100%; height:420px;">
+    </model-viewer>
+
+    <div class="orbit-ring" aria-hidden="false">
+      <div class="orbit-slot orbit-a">
+        <button type="button" class="orbit-icon" data-media="podcast" aria-expanded="false" aria-label="Abrir podcast">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z"/><path d="M19 11a7 7 0 0 1-14 0"/><line x1="12" y1="18" x2="12" y2="22"/></svg>
+        </button>
+      </div>
+      <div class="orbit-slot orbit-b">
+        <button type="button" class="orbit-icon" data-media="herramientas" aria-expanded="false" aria-label="Abrir caja de herramientas">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="18" height="9" rx="1.5"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/><line x1="3" y1="14" x2="21" y2="14"/></svg>
+        </button>
+      </div>
+      <div class="orbit-slot orbit-c">
+        <button type="button" class="orbit-icon" data-media="juego" aria-expanded="false" aria-label="Abrir juego arcade">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="4" y="9" width="16" height="9" rx="4"/><line x1="8" y1="13" x2="8" y2="14"/><line x1="7.5" y1="13.5" x2="8.5" y2="13.5"/><circle cx="15" cy="12.5" r="0.8" fill="currentColor" stroke="none"/><circle cx="17" cy="14.5" r="0.8" fill="currentColor" stroke="none"/></svg>
+        </button>
+      </div>
+    </div>
+  </div>
+  <p class="avatar-hint">Arrastrá el modelo para girarlo. Los íconos que orbitan abren cada pieza.</p>
+
+  <div class="media-panels">
+    <div class="media-panel" id="media-podcast">
+      <h3>El factor humano en el aula digital</h3>
+      <div class="embed-frame embed-frame-audio">
+        <audio controls preload="none" style="width:100%;">
+          <source src="El_factor_humano_en_el_aula_digital.m4a" type="audio/mp4">
+          Tu navegador no soporta la reproducción de audio.
+        </audio>
+      </div>
+      <button type="button" class="transcript-toggle" id="transcript-toggle" aria-expanded="false" aria-controls="transcript-text">Ver transcripción</button>
+      <div class="transcript-text" id="transcript-text">
+        <p><strong>Locutor A:</strong> ¡Hola a todos! Bienvenidos a un nuevo episodio de nuestro pódcast sobre innovación y educación. Hoy vamos a conversar sobre un tema que está en el centro de los debates educativos actuales: ¿cómo mantener el factor humano en aulas que son cada vez más virtuales y tecnológicas?</p>
+        <p><strong>Locutor B:</strong> Hola a todos. Qué gran tema, porque con tanta inteligencia artificial y digitalización, a veces olvidamos que la tecnología por sí sola no educa. Hoy analizaremos este desafío a través del perfil de una profesional con más de 8 años de experiencia liderando proyectos de tecnología e inclusión digital: María Paula Jaramillo Gómez.</p>
+        <p><strong>Locutor A:</strong> Exactamente. María Paula es Magíster en Ciencias Sociales con mención en Educación y Trabajo, y tiene una formación amplísima que cruza las artes electrónicas, la tecnología y la educación. Hoy nos enfocaremos en cómo su rol demuestra que el verdadero cambio no es solo técnico, sino profundamente humano y de acompañamiento.</p>
+
+        <p><strong>Locutor B:</strong> Así es. Cuando miramos su trayectoria, vemos que María Paula no se limita a "enseñar a usar una herramienta". Su enfoque está en el acompañamiento integral. Actualmente, como Facilitadora Pedagógica Digital en el Gobierno de la Ciudad de Buenos Aires, su tarea principal es diseñar e implementar estrategias pedagógicas que integren las TIC para promover la alfabetización y la ciudadanía digital.</p>
+        <p><strong>Locutor A:</strong> Es clave eso de "acompañar". Ella trabaja en estrecha colaboración con docentes y directivos para fortalecer la adopción de estas tecnologías en las escuelas, mejorando los procesos de enseñanza y garantizando un uso eficiente de los recursos. Es decir, está ahí, codo a codo con la comunidad educativa.</p>
+
+        <p><strong>Locutor B:</strong> Y ahí es donde entra un gran reto de la educación digital: ¿cómo sostenemos la participación de los estudiantes? En entornos virtuales, la distancia puede desmotivar rápidamente. María Paula maneja este desafío integrando metodologías de aprendizaje colaborativo y cooperativo.</p>
+        <p><strong>Locutor A:</strong> Claro, ella promueve que las tecnologías emergentes se usen para fomentar la creatividad y la colaboración. En su caja de herramientas digital cuenta con entornos virtuales como Moodle, Classroom, y herramientas interactivas como Genially, Kahoot, Padlet, Miro o Canva.</p>
+        <p><strong>Locutor B:</strong> El secreto está en cómo orienta el uso de estas aulas virtuales. No se trata de saturar de tareas, sino de usar estas plataformas para que los estudiantes interactúen de forma activa y desarrollen un pensamiento computacional y crítico.</p>
+
+        <p><strong>Locutor A:</strong> Otro pilar de su trabajo es mantener un vínculo estrecho y de confianza con los equipos docentes. No es fácil llegar a una institución a proponer cambios tecnológicos; suele haber resistencia o miedo.</p>
+        <p><strong>Locutor B:</strong> ¡Totalmente! Por eso es tan impresionante su capacidad de articulación. En Buenos Aires, lidera proyectos de integración tecnológica con más de 50 docentes en distintas instituciones. Y antes, en el departamento de Caldas, Colombia, coordinó proyectos educativos que impactaron a más de 1.400 docentes en el uso de tecnologías digitales. ¡1.400 docentes!</p>
+        <p><strong>Locutor A:</strong> Eso demuestra una gran capacidad de liderazgo y empatía. Ella coordina capacitaciones, diseña talleres y fomenta la innovación mediante metodologías activas como el aula invertida y el aprendizaje cooperativo. No impone la tecnología, sino que capacita y acompaña al docente para que se sienta seguro utilizándola.</p>
+
+        <p><strong>Locutor B:</strong> Para que todo esto funcione a largo plazo, no basta con una buena capacitación inicial. Se requiere un seguimiento sistemático. María Paula utiliza herramientas de gestión de proyectos y metodologías ágiles como Design Thinking para estructurar este acompañamiento.</p>
+        <p><strong>Locutor A:</strong> Es verdad. El uso de Design Thinking, por ejemplo, le permite idear soluciones educativas centradas en las personas y adaptadas a las realidades regionales de cada comunidad. Así, el seguimiento no es un mero control burocrático, sino una evaluación continua para ajustar las estrategias pedagógicas a lo que los docentes y alumnos realmente necesitan.</p>
+
+        <p><strong>Locutor B:</strong> En resumen, la trayectoria de María Paula Jaramillo Gómez nos demuestra que la inclusión digital no se logra solo repartiendo dispositivos o abriendo plataformas virtuales. Se logra sosteniendo la participación, orientando el uso pedagógico de las herramientas, manteniendo un vínculo estrecho con los docentes y haciendo un seguimiento sistemático con metodologías ágiles.</p>
+        <p><strong>Locutor A:</strong> El factor humano es, en definitiva, el motor que da sentido a la tecnología en el aula. Muchas gracias por acompañarnos hoy. ¡Nos escuchamos en el próximo episodio!</p>
+        <p><strong>Locutor B:</strong> ¡Hasta la próxima!</p>
+      </div>
+    </div>
+    <div class="media-panel" id="media-herramientas">
+      <h3>Caja de herramientas</h3>
+      <div class="toolbox">
+        <div class="toolbox-group">
+          <span class="toolbox-title">Diseño y producción</span>
+          <div class="toolbox-chips">
+            <span class="tool-chip">Canva</span>
+            <span class="tool-chip">Genially</span>
+            <span class="tool-chip">CapCut</span>
+            <span class="tool-chip">Adobe Podcast Enhance</span>
+            <span class="tool-chip">Suite Adobe</span>
+            <span class="tool-chip">Miro</span>
+          </div>
+        </div>
+        <div class="toolbox-group">
+          <span class="toolbox-title">Gestión del aprendizaje</span>
+          <div class="toolbox-chips">
+            <span class="tool-chip">Moodle</span>
+            <span class="tool-chip">Classroom</span>
+            <span class="tool-chip">Kahoot</span>
+            <span class="tool-chip">Padlet</span>
+            <span class="tool-chip">Google Workspace</span>
+          </div>
+        </div>
+        <div class="toolbox-group">
+          <span class="toolbox-title">Código y hardware</span>
+          <div class="toolbox-chips">
+            <span class="tool-chip">Processing</span>
+            <span class="tool-chip">p5.js</span>
+            <span class="tool-chip">TouchDesigner</span>
+            <span class="tool-chip">Arduino</span>
+            <span class="tool-chip">Python</span>
+          </div>
+        </div>
+        <div class="toolbox-group">
+          <span class="toolbox-title">Inteligencia artificial</span>
+          <div class="toolbox-chips">
+            <span class="tool-chip">Claude</span>
+            <span class="tool-chip">Gemini</span>
+            <span class="tool-chip">ChatGPT</span>
+            <span class="tool-chip">Perplexity</span>
+            <span class="tool-chip">Humata</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="media-panel" id="media-juego">
+      <h3>Atrapá la estrategia</h3>
+      <p class="puzzle-intro">Un arcade rápido: recolectá las prácticas que sostienen mi forma de tutorizar y esquivá las que no.</p>
+
+      <div class="arcade-wrap">
+        <div class="arcade-lanes" id="arcade-lanes"></div>
+        <div class="arcade-player" id="arcade-player">🎓</div>
+      </div>
+
+      <div class="arcade-controls">
+        <button type="button" id="arcade-left" aria-label="Mover a la izquierda">◀</button>
+        <span class="arcade-score" id="arcade-score">Puntaje: 0</span>
+        <button type="button" id="arcade-right" aria-label="Mover a la derecha">▶</button>
+      </div>
+
+      <button type="button" class="arcade-start" id="arcade-start">Jugar</button>
+      <p class="arcade-result" id="arcade-result" aria-live="polite"></p>
+    </div>
+  </div>
+  <div class="panel-scroll-cue" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8 L10 14 L16 8"/></svg></div>
+</aside>
+
+<!-- PARADA 2 — ENFOQUE TUTORIAL -->
+<aside class="panel" id="panel-2" role="dialog" aria-modal="true" aria-labelledby="panel-2-title">
+  <button class="panel-close" data-close aria-label="Cerrar">✕</button>
+  <span class="tag">Parada 2 de 4</span>
+  <h2 id="panel-2-title">Enfoque tutorial</h2>
+  <p>Entiendo la tutoría como un acompañamiento que sostiene la trayectoria del estudiante en paralelo a la enseñanza y la evaluación, con dos caras entrelazadas: la académica, que ayuda a organizar el estudio y notar cuándo alguien se desconecta del contenido, y la tecnológica, que orienta el uso del aula virtual y detecta a tiempo cuando una dificultad técnica se vuelve una barrera.</p>
+  <p>Casi siempre las dos dimensiones están entrelazadas. Un estudiante que deja de participar puede estar atravesando una dificultad de contenido, un problema técnico, o ambas cosas al mismo tiempo. Parte del trabajo tutorial está en leer cuál de las dos está en juego antes de intervenir.</p>
+  <div class="panel-scroll-cue" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8 L10 14 L16 8"/></svg></div>
+</aside>
+
+<!-- PARADA 3 — CAPACIDADES -->
+<aside class="panel" id="panel-3" role="dialog" aria-modal="true" aria-labelledby="panel-3-title">
+  <button class="panel-close" data-close aria-label="Cerrar">✕</button>
+  <span class="tag">Parada 3 de 4</span>
+  <h2 id="panel-3-title">Capacidades aplicadas al rol tutorial</h2>
+  <p>La convocatoria describe la función tutorial en verbos concretos: sostener la participación, orientar el uso del aula virtual, mantener el vínculo con los equipos docentes, hacer seguimiento sistemático, identificar tempranamente dificultades, favorecer la autonomía. Cada uno tiene un correlato directo en lo que ya ejerzo:</p>
+  <ul>
+    <li><strong>Orientar entornos virtuales:</strong> manejo cotidiano de Moodle como Profesora Titular en UCES, en materias híbridas que combinaban instancias asincrónicas y presenciales. Ahí acompañaba a los estudiantes en el uso del aula.</li>
+    <li><strong>Identificar dificultades tempranas:</strong> mi trabajo de alfabetización digital parte de detectar brechas concretas de manejo antes de que se conviertan en obstáculo.</li>
+    <li><strong>Vínculo con múltiples actores:</strong> como Facilitadora Pedagógica Digital en GCBA, articulo hoy con más de 100 docentes en dos escuelas, además de estudiantes, conducción y pares.</li>
+    <li><strong>Favorecer la autonomía:</strong> mi eje de ciudadanía digital y pensamiento computacional apunta a que la persona pueda sostenerse sola en el entorno digital.</li>
+    <li><strong>Actualización constante:</strong> mi trabajo diario incorpora tecnologías emergentes como la IA. Eso exige sostener una curva de aprendizaje activa, la misma que le voy a pedir a quien acompañe.</li>
+    <li><strong>Accesibilidad e inclusión digital:</strong> reviso que las consignas y los canales de contacto tengan más de un formato posible, sin dar por sentado que todos manejan el mismo vocabulario técnico. La alfabetización digital que trabajo a diario busca reducir brechas de acceso antes de que se conviertan en motivo de abandono.</li>
+  </ul>
+
+  <div class="scenario">
+    <p class="scenario-prompt">Cuatro maneras en que se traduce el acompañamiento: dos situaciones a resolver, dos proyectos a diseñar. Elegí una:</p>
+    <div class="scenario-options">
+      <button class="scenario-btn" data-target="resp-a" aria-expanded="false">Un/a estudiante deja de participar en el aula</button>
+      <div class="scenario-response" id="resp-a">Contacto directo y breve, sin reproche: pregunto primero qué está pasando. Reviso si el corte es técnico, de organización del tiempo o de motivación, y recién ahí ajusto el acompañamiento. El seguimiento sistemático permite notar la ausencia antes de que se vuelva abandono.</div>
+
+      <button class="scenario-btn" data-target="resp-b" aria-expanded="false">Falla técnica que bloquea una entrega</button>
+      <div class="scenario-response" id="resp-b">Separo el problema técnico del académico. Primero resuelvo o derivo la falla (plazo, canal alternativo, soporte), después reviso el contenido. La entrega tardía por un obstáculo tecnológico nunca se convierte en una nota baja ni en pérdida de confianza en el propio proceso.</div>
+
+      <button class="scenario-btn" data-target="resp-c" aria-expanded="false">Proyecto "Mi primer robot" — iniciación en programación</button>
+      <div class="scenario-response" id="resp-c">Parto de un objeto físico manipulable para que la lógica computacional tenga un correlato concreto: armar, probar, fallar, ajustar. Sostengo el error como parte esperada del proceso. Cada intento fallido enseña secuencia, condición o iteración antes de que se nombre como concepto. Es la misma lógica de andamiaje que aplicaría en un entorno a distancia: bajar la abstracción a algo tangible antes de pedir que se sostenga sola.</div>
+
+      <button class="scenario-btn" data-target="resp-d" aria-expanded="false">Videojuego "Explorando la ET20" — uso crítico de IA</button>
+      <div class="scenario-response" id="resp-d">Trabajamos la IA como herramienta de cocreación: los estudiantes curaban, ajustaban y descartaban lo que proponía, con criterio propio en cada paso. El acompañamiento ahí fue sostener esa pregunta: ¿esto sirve, o solo está disponible? Se vuelve todavía más necesaria cuando el vínculo es a distancia, porque hay menos oportunidad de corregir el rumbo en el momento.</div>
+    </div>
+  </div>
+  <div class="panel-scroll-cue" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8 L10 14 L16 8"/></svg></div>
+</aside>
+
+<!-- PARADA 4 — ESTUDIOS -->
+<aside class="panel" id="panel-4" role="dialog" aria-modal="true" aria-labelledby="panel-4-title">
+  <button class="panel-close" data-close aria-label="Cerrar">✕</button>
+  <span class="tag">Parada 4 de 4</span>
+  <h2 id="panel-4-title">Estudios</h2>
+  <p>Licenciada en Diseño Visual por la Universidad de Caldas, con tres maestrías que respaldan de forma directa el requisito de formación docente complementaria de la convocatoria:</p>
+  <ul>
+    <li><strong>Maestría en Tecnología y Estética de las Artes Electrónicas</strong> — Universidad Nacional de Tres de Febrero (UNTREF)</li>
+    <li><strong>Ciencias Humanas y Sociales, mención Educación</strong> — Université Paris-Est Créteil (UPEC)</li>
+    <li><strong>Magister en Ciencias Sociales, mención Educación y Trabajo</strong> — Universidad de Caldas</li>
+    <li><strong>Diplomatura Universitaria en Habilidades y Estrategias para la Innovación mediadas con Tecnologías Digitales</strong> — UniCABA</li>
+  </ul>
+  <div class="panel-scroll-cue" aria-hidden="true"><svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 8 L10 14 L16 8"/></svg></div>
+</aside>
+
+<script>
+  const pins = document.querySelectorAll('.pin');
+  const overlay = document.getElementById('overlay');
+  const progressText = document.getElementById('progress-text');
+  const progressFill = document.getElementById('progress-fill');
+  let visited = 0;
+  let lastFocused = null;
+
+  function openPanel(n, trigger){
+    lastFocused = trigger;
+    const panel = document.getElementById('panel-' + n);
+    panel.classList.add('open');
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    panel.querySelector('.panel-close').focus();
+
+    if(trigger.getAttribute('data-visited') === 'false'){
+      trigger.setAttribute('data-visited', 'true');
+      visited++;
+      progressText.textContent = visited + ' de 4 recorridas';
+      progressFill.style.width = (visited/4*100) + '%';
+    }
+
+    checkPanelScrollCue(panel);
+  }
+
+  function checkPanelScrollCue(panel){
+    const cue = panel.querySelector('.panel-scroll-cue');
+    if(!cue) return;
+    const hasOverflow = panel.scrollHeight - panel.clientHeight > 20;
+    const nearBottom = panel.scrollTop + panel.clientHeight >= panel.scrollHeight - 20;
+    if(!hasOverflow || panel.scrollTop > 15 || nearBottom){
+      cue.classList.add('hidden');
+    } else {
+      cue.classList.remove('hidden');
+    }
+  }
+
+  document.querySelectorAll('.panel').forEach(panel => {
+    panel.addEventListener('scroll', () => checkPanelScrollCue(panel));
+  });
+
+  function closeAll(){
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('open'));
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+    if(lastFocused) lastFocused.focus();
+  }
+
+  pins.forEach(pin => {
+    const n = pin.getAttribute('data-panel');
+    pin.addEventListener('click', () => openPanel(n, pin));
+    pin.addEventListener('keydown', e => {
+      if(e.key === 'Enter' || e.key === ' '){ e.preventDefault(); openPanel(n, pin); }
+    });
+  });
+
+  document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', closeAll));
+  overlay.addEventListener('click', closeAll);
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') closeAll(); });
+
+  // mini-escena interactiva dentro de "capacidades"
+  document.querySelectorAll('.scenario-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById(btn.getAttribute('data-target'));
+      const isOpen = target.classList.contains('show');
+      target.classList.toggle('show', !isOpen);
+      btn.setAttribute('aria-expanded', String(!isOpen));
+    });
+  });
+
+  // íconos orbitando el modelo en "quién soy"
+  document.querySelectorAll('.orbit-icon').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const target = document.getElementById('media-' + btn.getAttribute('data-media'));
+      const isOpen = target.classList.contains('show');
+      document.querySelectorAll('.media-panel').forEach(p => p.classList.remove('show'));
+      document.querySelectorAll('.orbit-icon').forEach(b => b.setAttribute('aria-expanded', 'false'));
+      if(!isOpen){
+        target.classList.add('show');
+        btn.setAttribute('aria-expanded', 'true');
+      }
+    });
+  });
+
+  // indicador de scroll
+  const scrollCue = document.getElementById('scroll-cue');
+  if(scrollCue){
+    function checkScrollCue(){
+      const nearBottom = (window.innerHeight + window.scrollY) >= (document.body.scrollHeight - 40);
+      if(window.scrollY > 60 || nearBottom){
+        scrollCue.classList.add('hidden');
+      } else {
+        scrollCue.classList.remove('hidden');
+      }
+    }
+    window.addEventListener('scroll', checkScrollCue);
+    window.addEventListener('resize', checkScrollCue);
+    checkScrollCue();
+  }
+
+  (function(){
+    const lanesCount = 5;
+    const laneWidthPct = 100 / lanesCount;
+    const laneCenter = i => (i + 0.5) * laneWidthPct;
+
+    const goodItems = [
+      'Acompaño, no reemplazo al docente',
+      'Sostengo la continuidad del proceso',
+      'Detecto la dificultad a tiempo',
+      'Seguimiento sistemático, no invasivo',
+      'Mensaje directo si hay silencio',
+      'Fomento el vínculo entre pares',
+      'Más de un formato posible',
+      'No doy por sentado el vocabulario',
+      'Reduzco brechas de acceso'
+    ];
+    const badItems = [
+      'Ignorar mensajes sin respuesta',
+      'Un solo formato para todos',
+      'Suponer que todos entienden igual',
+      'Reemplazar al docente',
+      'Esperar sin avisar a nadie'
+    ];
+
+    function shuffle(arr){
+      for(let i = arr.length - 1; i > 0; i--){
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+      }
+      return arr;
+    }
+
+    const lanesEl = document.getElementById('arcade-lanes');
+    const player = document.getElementById('arcade-player');
+    const scoreEl = document.getElementById('arcade-score');
+    const resultEl = document.getElementById('arcade-result');
+    const startBtn = document.getElementById('arcade-start');
+    const leftBtn = document.getElementById('arcade-left');
+    const rightBtn = document.getElementById('arcade-right');
+
+    if(!lanesEl || !player) return;
+
+    const FALL_DURATION = 6200;
+    const SPAWN_INTERVAL = 1900;
+
+    let playerLane = 2;
+    let pool = [];
+    let score = 0, caughtGood = 0, spawnIndex = 0, gameActive = false;
+    let activeItems = [];
+    let spawnTimer = null, tickTimer = null;
+
+    function updatePlayerPos(){ player.style.left = laneCenter(playerLane) + '%'; }
+    function movePlayer(delta){
+      playerLane = Math.max(0, Math.min(lanesCount - 1, playerLane + delta));
+      updatePlayerPos();
+    }
+    updatePlayerPos();
+
+    leftBtn.addEventListener('click', () => movePlayer(-1));
+    rightBtn.addEventListener('click', () => movePlayer(1));
+    document.addEventListener('keydown', e => {
+      if(!gameActive) return;
+      if(e.key === 'ArrowLeft') movePlayer(-1);
+      if(e.key === 'ArrowRight') movePlayer(1);
+    });
+
+    function flashPlayer(kind){
+      player.classList.remove('flash-good', 'flash-bad');
+      void player.offsetWidth;
+      player.classList.add(kind === 'good' ? 'flash-good' : 'flash-bad');
+    }
+
+    function spawnItem(){
+      if(spawnIndex >= pool.length){
+        clearInterval(spawnTimer);
+        return;
+      }
+      const data = pool[spawnIndex++];
+      const lane = Math.floor(Math.random() * lanesCount);
+      const el = document.createElement('div');
+      el.className = 'arcade-item' + (data.good ? '' : ' bad');
+      el.textContent = data.text;
+      el.style.left = laneCenter(lane) + '%';
+      el.style.top = '-12%';
+      lanesEl.appendChild(el);
+      activeItems.push({ el, lane, good: data.good, start: Date.now(), resolved: false });
+    }
+
+    function gameTick(){
+      activeItems.forEach(item => {
+        if(item.resolved) return;
+        const progress = Math.min((Date.now() - item.start) / FALL_DURATION, 1);
+        item.el.style.top = (progress * 100) + '%';
+
+        if(progress >= 0.82 && progress < 0.97 && item.lane === playerLane){
+          item.resolved = true;
+          if(item.good){ score++; caughtGood++; flashPlayer('good'); }
+          else { score--; flashPlayer('bad'); }
+          scoreEl.textContent = 'Puntaje: ' + score;
+          item.el.remove();
+        } else if(progress >= 1){
+          item.resolved = true;
+          item.el.remove();
+        }
+      });
+      activeItems = activeItems.filter(i => !i.resolved);
+
+      if(spawnIndex >= pool.length && activeItems.length === 0 && gameActive){
+        endGame();
+      }
+    }
+
+    function endGame(){
+      gameActive = false;
+      clearInterval(spawnTimer);
+      clearInterval(tickTimer);
+      startBtn.disabled = false;
+      startBtn.textContent = 'Jugar de nuevo';
+      resultEl.textContent = 'Recolectaste ' + caughtGood + ' de ' + goodItems.length + ' buenas prácticas, puntaje final ' + score + '. Rol tutorial, acompañamiento de trayectorias, y accesibilidad e inclusión: los tres ejes que sostienen mi forma de tutorizar.';
+    }
+
+    function startGame(){
+      score = 0; caughtGood = 0; spawnIndex = 0; activeItems = [];
+      gameActive = true;
+      lanesEl.innerHTML = '';
+      resultEl.textContent = '';
+      scoreEl.textContent = 'Puntaje: 0';
+      pool = shuffle(
+        goodItems.map(t => ({ text: t, good: true }))
+          .concat(badItems.map(t => ({ text: t, good: false })))
+      );
+      startBtn.disabled = true;
+      startBtn.textContent = 'Jugando…';
+      spawnItem();
+      spawnTimer = setInterval(spawnItem, SPAWN_INTERVAL);
+      tickTimer = setInterval(gameTick, 30);
+    }
+
+    startBtn.addEventListener('click', startGame);
+  })();
+
+  // forzar la reproducción de la animación del modelo 3D apenas termina de cargar
+  const transcriptToggle = document.getElementById('transcript-toggle');
+  const transcriptText = document.getElementById('transcript-text');
+  if(transcriptToggle && transcriptText){
+    transcriptToggle.addEventListener('click', () => {
+      const isOpen = transcriptText.classList.contains('show');
+      transcriptText.classList.toggle('show', !isOpen);
+      transcriptToggle.setAttribute('aria-expanded', String(!isOpen));
+      transcriptToggle.textContent = isOpen ? 'Ver transcripción' : 'Ocultar transcripción';
+    });
+  }
+  const mpModel = document.querySelector('model-viewer');
+  if(mpModel){
+    mpModel.addEventListener('load', () => {
+      console.log('Animaciones disponibles en el modelo:', mpModel.availableAnimations);
+      mpModel.play({ repetitions: Infinity });
+    });
+    mpModel.addEventListener('error', (e) => {
+      console.error('Error cargando el modelo 3D:', e.detail);
+    });
+  }
+</script>
+
+</body>
+</html>
